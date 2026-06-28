@@ -1,61 +1,111 @@
-const User = require('../models/User');
+const User          = require('../models/User');
 const generateToken = require('../utils/generateToken');
 
 // POST /api/auth/register
 const registerUser = async (req, res) => {
-  const { name, email, password } = req.body;
+  try {
+    const { name, email, password } = req.body;
 
-  const exists = await User.findOne({ email });
-  if (exists) {
-    res.status(400);
-    throw new Error('User already exists with this email');
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name, email and password are required'
+      });
+    }
+
+    const exists = await User.findOne({ email: email.toLowerCase() });
+    if (exists) {
+      return res.status(400).json({
+        success: false,
+        message: 'User already exists with this email'
+      });
+    }
+
+    const user = new User({ name, email, password });
+    await user.save();
+
+    const token = generateToken(user._id);
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        _id:   user._id,
+        name:  user.name,
+        email: user.email,
+        token: token,
+      },
+    });
+  } catch (err) {
+    console.error('Register error:', err.message);
+    return res.status(500).json({
+      success: false,
+      message: err.message || 'Registration failed'
+    });
   }
-
-  const user = await User.create({ name, email, password });
-
-  res.status(201).json({
-    success: true,
-    data: {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      token: generateToken(user._id),
-    },
-  });
 };
 
 // POST /api/auth/login
 const loginUser = async (req, res) => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-  const user = await User.findOne({ email });
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required'
+      });
+    }
 
-  if (!user || !(await user.matchPassword(password))) {
-    res.status(401);
-    throw new Error('Invalid email or password');
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password'
+      });
+    }
+
+    const isMatch = await user.matchPassword(password);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password'
+      });
+    }
+
+    const token = generateToken(user._id);
+
+    return res.json({
+      success: true,
+      data: {
+        _id:   user._id,
+        name:  user.name,
+        email: user.email,
+        token: token,
+      },
+    });
+  } catch (err) {
+    console.error('Login error:', err.message);
+    return res.status(500).json({
+      success: false,
+      message: err.message || 'Login failed'
+    });
   }
-
-  res.json({
-    success: true,
-    data: {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      token: generateToken(user._id),
-    },
-  });
 };
 
 // GET /api/auth/me
 const getMe = async (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      _id: req.user._id,
-      name: req.user.name,
-      email: req.user.email,
-    },
-  });
+  try {
+    return res.json({
+      success: true,
+      data: {
+        _id:   req.user._id,
+        name:  req.user.name,
+        email: req.user.email,
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
 };
 
 module.exports = { registerUser, loginUser, getMe };
