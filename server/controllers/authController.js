@@ -1,3 +1,4 @@
+const bcrypt        = require('bcryptjs');
 const User          = require('../models/User');
 const generateToken = require('../utils/generateToken');
 
@@ -9,7 +10,7 @@ const registerUser = async (req, res) => {
     if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Name, email and password are required'
+        message: 'Name, email and password are required',
       });
     }
 
@@ -17,12 +18,18 @@ const registerUser = async (req, res) => {
     if (exists) {
       return res.status(400).json({
         success: false,
-        message: 'User already exists with this email'
+        message: 'User already exists with this email',
       });
     }
 
-    const user = new User({ name, email, password });
-    await user.save();
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const user = await User.create({
+      name,
+      email: email.toLowerCase(),
+      password: hashedPassword,
+    });
 
     const token = generateToken(user._id);
 
@@ -32,7 +39,7 @@ const registerUser = async (req, res) => {
         _id:   user._id,
         name:  user.name,
         email: user.email,
-        token: token,
+        token,
       },
     });
   } catch (err) {
@@ -52,7 +59,7 @@ const loginUser = async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Email and password are required'
+        message: 'Email and password required',
       });
     }
 
@@ -60,7 +67,7 @@ const loginUser = async (req, res) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password'
+        message: 'Invalid email or password',
       });
     }
 
@@ -68,7 +75,7 @@ const loginUser = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password'
+        message: 'Invalid email or password',
       });
     }
 
@@ -80,32 +87,28 @@ const loginUser = async (req, res) => {
         _id:   user._id,
         name:  user.name,
         email: user.email,
-        token: token,
+        token,
       },
     });
   } catch (err) {
     console.error('Login error:', err.message);
     return res.status(500).json({
       success: false,
-      message: err.message || 'Login failed'
+      message: err.message || 'Login failed',
     });
   }
 };
 
 // GET /api/auth/me
 const getMe = async (req, res) => {
-  try {
-    return res.json({
-      success: true,
-      data: {
-        _id:   req.user._id,
-        name:  req.user.name,
-        email: req.user.email,
-      },
-    });
-  } catch (err) {
-    return res.status(500).json({ success: false, message: err.message });
-  }
+  return res.json({
+    success: true,
+    data: {
+      _id:   req.user._id,
+      name:  req.user.name,
+      email: req.user.email,
+    },
+  });
 };
 
 module.exports = { registerUser, loginUser, getMe };
