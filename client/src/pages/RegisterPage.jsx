@@ -43,7 +43,7 @@ export default function RegisterPage({ onSwitch }) {
           <label style={s.label}>Full Name</label>
           <input
             name="name"
-            placeholder="Vaibhav Chaudhary"
+            placeholder="Vaibhav Chauhan"
             value={form.name}
             onChange={handle}
             style={s.input}
