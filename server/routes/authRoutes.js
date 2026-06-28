@@ -6,8 +6,15 @@ const {
   getMe,
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
-const { body } = require('express-validator');
-const { validate } = require('../middleware/validateTask');
+const { body, validationResult } = require('express-validator');
+
+const validate = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, errors: errors.array() });
+  }
+  return next();
+};
 
 const registerRules = [
   body('name').notEmpty().withMessage('Name is required').trim(),
