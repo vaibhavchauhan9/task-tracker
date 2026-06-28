@@ -1,2 +1,15 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: #181825; color: #cdd6f4; font-family: 'Segoe UI', sans-serif; }
+
+body {
+  background: #181825;
+  color: #cdd6f4;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 600px) {
+  h1 { font-size: 22px !important; }
+}
