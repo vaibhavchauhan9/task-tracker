@@ -1,9 +1,10 @@
 const Task = require('../models/Task');
 
-// GET /api/tasks
+// GET /api/tasks — sirf apne tasks
 const getAllTasks = async (req, res) => {
   const { status, priority, sortBy = 'createdAt', order = 'desc', page = 1, limit = 10 } = req.query;
-  const filter = {};
+
+  const filter = { user: req.user._id };
   if (status) filter.status = status;
   if (priority) filter.priority = priority;
 
@@ -26,19 +27,25 @@ const getAllTasks = async (req, res) => {
 
 // GET /api/tasks/stats
 const getTaskStats = async (req, res) => {
+  const userId = req.user._id;
   const [byStatus, byPriority, total, overdue] = await Promise.all([
-    Task.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
-    Task.aggregate([{ $group: { _id: '$priority', count: { $sum: 1 } } }]),
-    Task.countDocuments(),
-    Task.countDocuments({ dueDate: { $lt: new Date() }, status: { $ne: 'done' } }),
+    Task.aggregate([
+      { $match: { user: userId } },
+      { $group: { _id: '$status', count: { $sum: 1 } } },
+    ]),
+    Task.aggregate([
+      { $match: { user: userId } },
+      { $group: { _id: '$priority', count: { $sum: 1 } } },
+    ]),
+    Task.countDocuments({ user: userId }),
+    Task.countDocuments({ user: userId, dueDate: { $lt: new Date() }, status: { $ne: 'done' } }),
   ]);
-
   res.json({ success: true, data: { total, overdue, byStatus, byPriority } });
 };
 
 // GET /api/tasks/:id
 const getTaskById = async (req, res) => {
-  const task = await Task.findById(req.params.id);
+  const task = await Task.findOne({ _id: req.params.id, user: req.user._id });
   if (!task) {
     res.status(404);
     throw new Error('Task not found');
@@ -48,18 +55,18 @@ const getTaskById = async (req, res) => {
 
 // POST /api/tasks
 const createTask = async (req, res) => {
-  const task = await Task.create(req.body);
+  const task = await Task.create({ ...req.body, user: req.user._id });
   res.status(201).json({ success: true, message: 'Task created', data: task });
 };
 
 // PUT /api/tasks/:id
 const updateTask = async (req, res) => {
-  const task = await Task.findById(req.params.id);
+  const task = await Task.findOne({ _id: req.params.id, user: req.user._id });
   if (!task) {
     res.status(404);
     throw new Error('Task not found');
   }
-  const { _id, createdAt, __v, ...updateData } = req.body;
+  const { _id, createdAt, user, __v, ...updateData } = req.body;
   const updated = await Task.findByIdAndUpdate(req.params.id, updateData, {
     new: true,
     runValidators: true,
@@ -69,7 +76,7 @@ const updateTask = async (req, res) => {
 
 // DELETE /api/tasks/:id
 const deleteTask = async (req, res) => {
-  const task = await Task.findById(req.params.id);
+  const task = await Task.findOne({ _id: req.params.id, user: req.user._id });
   if (!task) {
     res.status(404);
     throw new Error('Task not found');

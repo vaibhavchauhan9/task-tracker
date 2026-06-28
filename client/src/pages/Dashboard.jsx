@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useTasks } from '../context/TaskContext';
+import { useAuth }  from '../context/AuthContext';
 import TaskCard   from '../components/TaskCard';
 import TaskFilter from '../components/TaskFilter';
 import TaskForm   from '../components/TaskForm';
 
 export default function Dashboard() {
   const { tasks, loading, error, fetchTasks } = useTasks();
+  const { user, logout } = useAuth();
   const [filters,  setFilters]  = useState({ status: '', priority: '' });
   const [showForm, setShowForm] = useState(false);
 
@@ -23,11 +25,16 @@ export default function Dashboard() {
       <header style={s.header}>
         <div>
           <h1 style={s.logo}>🗂️ Task Tracker</h1>
-          <p style={s.sub}>Manage your tasks efficiently</p>
+          <p style={s.sub}>👋 Welcome, {user?.name}</p>
         </div>
-        <button onClick={() => setShowForm(true)} style={s.addBtn}>
-          ➕ New Task
-        </button>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button onClick={() => setShowForm(true)} style={s.addBtn}>
+            ➕ New Task
+          </button>
+          <button onClick={logout} style={s.logoutBtn}>
+            🚪 Logout
+          </button>
+        </div>
       </header>
 
       {/* Stats Bar */}
@@ -120,6 +127,11 @@ const s = {
     background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
     color: '#fff', fontWeight: 700, fontSize: '14px',
     cursor: 'pointer', whiteSpace: 'nowrap',
+  },
+  logoutBtn: {
+    padding: '12px 24px', borderRadius: '10px', border: '1px solid #45475a',
+    background: 'transparent', color: '#f38ba8', fontWeight: 700,
+    fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap',
   },
   statsBar: {
     display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap',

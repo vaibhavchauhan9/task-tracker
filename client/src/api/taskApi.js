@@ -4,6 +4,16 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'https://task-tracker-urfl.onrender.com/api',
 });
 
+// Har request mein token lagao
+api.interceptors.request.use((config) => {
+  const user = localStorage.getItem('tt_user');
+  if (user) {
+    const { token } = JSON.parse(user);
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
